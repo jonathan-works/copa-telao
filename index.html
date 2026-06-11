@@ -3,36 +3,377 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vídeo Fullscreen</title>
+<title>Telão — Transmissão</title>
 
 <style>
-html, body {
+  :root{
+    --bg: #070A12;
+    --panel: rgba(255,255,255,.06);
+    --panel2: rgba(255,255,255,.09);
+    --text: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.72);
+    --accent: #7C5CFF;
+    --accent2: #25D6A2;
+    --danger: #FF4D6D;
+    --shadow: 0 18px 60px rgba(0,0,0,.45);
+    --radius: 18px;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{
     margin: 0;
     width: 100%;
     height: 100%;
+    background: radial-gradient(1200px 700px at 20% 0%, rgba(124,92,255,.25), transparent 60%),
+                radial-gradient(900px 600px at 90% 20%, rgba(37,214,162,.20), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", Helvetica, "Noto Sans", "Liberation Sans", sans-serif;
     overflow: hidden;
-}
+  }
 
-#player {
+  .app{
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .topbar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.10);
+    background: linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,0));
+    backdrop-filter: blur(10px);
+  }
+
+  .brand{
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .brand strong{
+    font-size: 16px;
+    letter-spacing: .4px;
+    white-space: nowrap;
+  }
+
+  .brand span{
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(52vw, 760px);
+  }
+
+  .actions{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn{
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform .10s ease, background .10s ease, border-color .10s ease;
+    user-select: none;
+  }
+
+  .btn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+  .btn:active{ transform: scale(.98); }
+  .btn.primary{
+    background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(37,214,162,.90));
+    border-color: rgba(255,255,255,.22);
+    color: #061018;
+  }
+  .btn.danger{
+    background: rgba(255,77,109,.12);
+    border-color: rgba(255,77,109,.35);
+    color: rgba(255,255,255,.95);
+  }
+
+  .stage{
+    position: relative;
+    height: 100%;
+    width: 100%;
+  }
+
+  .frameWrap{
+    position: absolute;
+    inset: 14px 14px 14px 14px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: rgba(0,0,0,.35);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+
+  iframe{
+    width: 100%;
+    height: 100%;
     border: 0;
-}
+    background: #000;
+  }
+
+  .overlay{
+    position: absolute;
+    inset: 14px 14px 14px 14px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .card{
+    width: min(980px, calc(100vw - 44px));
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: var(--shadow);
+    padding: clamp(18px, 2.4vw, 28px);
+    backdrop-filter: blur(12px);
+    pointer-events: auto;
+  }
+
+  .title{
+    margin: 0;
+    font-size: clamp(18px, 2.3vw, 28px);
+    letter-spacing: .2px;
+  }
+
+  .subtitle{
+    margin: 10px 0 0 0;
+    font-size: clamp(14px, 1.5vw, 16px);
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .chips{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .chip{
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.25);
+    border-radius: 999px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: rgba(255,255,255,.85);
+  }
+
+  .chip.danger{
+    border-color: rgba(255,77,109,.40);
+    background: rgba(255,77,109,.12);
+  }
+
+  .cardActions{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .hint{
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,.65);
+    line-height: 1.4;
+  }
+
+  .hidden{ display: none; }
+
+  @media (max-width: 740px){
+    .brand span{ display: none; }
+    .frameWrap, .overlay{ inset: 10px; }
+    .topbar{ padding: 12px 12px; }
+  }
 </style>
 </head>
 <body>
 
-<iframe
-    id="player"
-    src="https://www.youtube-nocookie.com/embed/TO9oe67HZOQ?autoplay=1&mute=1&loop=1&playlist=TO9oe67HZOQ&rel=0&playsinline=1"
-    title="YouTube video player"
-    frameborder="0"
-    allow="autoplay; encrypted-media; picture-in-picture"
-    allowfullscreen>
-</iframe>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <strong>Telão</strong>
+      <span id="sourceLabel"></span>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnFullscreen" type="button">Tela cheia</button>
+      <button class="btn primary" id="btnOpenOfficial" type="button">Abrir transmissão</button>
+      <button class="btn" id="btnOpenNewTab" type="button">Abrir em nova aba</button>
+      <button class="btn danger" id="btnShowHelp" type="button">Ajuda</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="frameWrap" aria-label="Área do player">
+      <iframe
+        id="playerFrame"
+        title="Transmissão"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        referrerpolicy="origin"
+        loading="eager"
+        allowfullscreen></iframe>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="card" role="dialog" aria-live="polite" aria-label="Aviso de reprodução">
+        <h1 class="title">Esta transmissão pode não permitir exibição embutida</h1>
+        <p class="subtitle" id="overlayText">
+          Se o provedor bloquear a reprodução dentro deste site (por políticas como frame-ancestors / X-Frame-Options),
+          a opção legal e funcional é abrir o player oficial.
+        </p>
+        <div class="chips">
+          <div class="chip danger" id="chipStatus">Status: verificando…</div>
+          <div class="chip">Sem bypass / sem DRM</div>
+          <div class="chip">Compatível com Netlify</div>
+        </div>
+        <div class="cardActions">
+          <button class="btn primary" id="btnOpenOfficial2" type="button">Abrir player oficial</button>
+          <button class="btn" id="btnTryEmbed" type="button">Tentar aqui</button>
+          <button class="btn" id="btnHideOverlay" type="button">Ocultar aviso</button>
+        </div>
+        <div class="hint">
+          Dica: se você controla a transmissão, procure por “código de incorporação (embed)”/“domínios permitidos” no provedor.
+          Se não controla, use o link oficial.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CONFIG = {
+    officialUrl: "https://www.youtube.com/watch?v=TO9oe67HZOQ",
+    embedUrl: "https://www.youtube-nocookie.com/embed/TO9oe67HZOQ?autoplay=1&mute=1&rel=0&playsinline=1"
+  };
+
+  const el = {
+    frame: document.getElementById("playerFrame"),
+    overlay: document.getElementById("overlay"),
+    overlayText: document.getElementById("overlayText"),
+    chipStatus: document.getElementById("chipStatus"),
+    sourceLabel: document.getElementById("sourceLabel"),
+    btnFullscreen: document.getElementById("btnFullscreen"),
+    btnOpenOfficial: document.getElementById("btnOpenOfficial"),
+    btnOpenNewTab: document.getElementById("btnOpenNewTab"),
+    btnShowHelp: document.getElementById("btnShowHelp"),
+    btnOpenOfficial2: document.getElementById("btnOpenOfficial2"),
+    btnTryEmbed: document.getElementById("btnTryEmbed"),
+    btnHideOverlay: document.getElementById("btnHideOverlay")
+  };
+
+  function safeUrlLabel(url) {
+    try {
+      const u = new URL(url);
+      const trimmedPath = (u.pathname || "/").replace(/\/+$/, "") || "/";
+      const short = u.host + trimmedPath;
+      return short.length > 90 ? short.slice(0, 90) + "…" : short;
+    } catch {
+      return url;
+    }
+  }
+
+  function openOfficial(mode) {
+    if (!CONFIG.officialUrl) return;
+    if (mode === "newtab") {
+      window.open(CONFIG.officialUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    window.location.href = CONFIG.officialUrl;
+  }
+
+  function setStatus(text) {
+    el.chipStatus.textContent = "Status: " + text;
+  }
+
+  function showOverlay(text) {
+    if (text) el.overlayText.textContent = text;
+    el.overlay.classList.remove("hidden");
+  }
+
+  function hideOverlay() {
+    el.overlay.classList.add("hidden");
+  }
+
+  function tryEmbed() {
+    if (!CONFIG.embedUrl) {
+      showOverlay("Nenhum link de embed foi configurado. Use o botão para abrir o player oficial.");
+      setStatus("sem embed");
+      return;
+    }
+
+    setStatus("carregando embed…");
+    el.frame.src = CONFIG.embedUrl;
+
+    let loaded = false;
+    const timeoutMs = 6500;
+
+    const onLoad = () => {
+      loaded = true;
+      setStatus("embed carregado");
+      hideOverlay();
+    };
+
+    el.frame.addEventListener("load", onLoad, { once: true });
+
+    window.setTimeout(() => {
+      if (loaded) return;
+      setStatus("bloqueado ou lento");
+      showOverlay(
+        "Não foi possível confirmar o carregamento do embed. Muitos provedores bloqueiam exibição em sites de terceiros. " +
+        "A alternativa suportada é abrir o player oficial."
+      );
+    }, timeoutMs);
+  }
+
+  async function requestFullscreen() {
+    const root = document.documentElement;
+    if (!document.fullscreenElement && root.requestFullscreen) {
+      await root.requestFullscreen();
+      return;
+    }
+    if (document.fullscreenElement && document.exitFullscreen) {
+      await document.exitFullscreen();
+    }
+  }
+
+  el.sourceLabel.textContent = CONFIG.officialUrl ? safeUrlLabel(CONFIG.officialUrl) : "";
+  el.btnOpenOfficial.addEventListener("click", () => openOfficial("same"));
+  el.btnOpenNewTab.addEventListener("click", () => openOfficial("newtab"));
+  el.btnOpenOfficial2.addEventListener("click", () => openOfficial("newtab"));
+  el.btnTryEmbed.addEventListener("click", () => tryEmbed());
+  el.btnHideOverlay.addEventListener("click", () => hideOverlay());
+  el.btnShowHelp.addEventListener("click", () => showOverlay());
+  el.btnFullscreen.addEventListener("click", () => requestFullscreen());
+
+  if (CONFIG.embedUrl) {
+    tryEmbed();
+  } else {
+    setStatus("sem embed");
+    showOverlay("Este telão está configurado para abrir a transmissão no player oficial.");
+  }
+</script>
 
 </body>
 </html>
